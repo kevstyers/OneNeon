@@ -1,0 +1,140 @@
+---
+title: "D1013 Beetles Analysis"
+author: "Kevin Styers"
+date: "5/17/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# load dependencies
+library(neonUtilities)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+```
+
+```{r Grab Data, eval = FALSE }
+# Grab all the data (takes like 10 minutes)
+beetData <- loadByProduct("DP1.10022.001")
+names(beetData)
+```
+
+```{r Grab the Right Data}
+#fieldBeet <- beetData[3]
+
+# Commenting this out because I already have written the CSV
+# But you will need to write this csv for the rest of the code to work
+#write.csv(beetData[3], "fieldData.csv")
+sort <- fread("C:/Users/kevin/Documents/sortData.csv")
+```
+
+```{r Filtering and Sorting}
+sites <- c("CPER","STER","RMNP","NIWO")
+
+# Dates
+sort$bet_sorting.setDate <- as.Date(sort$bet_sorting.setDate)
+
+# Initial filter for the test plot
+sort2018 <- sort %>%
+  filter(bet_sorting.setDate > "2015-01-01" & bet_sorting.setDate < "2019-01-01") %>%
+  filter(bet_sorting.siteID %in% sites) %>%
+  filter(bet_sorting.sampleType == "carabid") %>%
+  select(bet_sorting.domainID,bet_sorting.siteID,bet_sorting.collectDate,bet_sorting.plotID,bet_sorting.trapID,
+         bet_sorting.setDate,bet_sorting.sampleType,bet_sorting.taxonID,bet_sorting.scientificName,
+         bet_sorting.taxonRank,bet_sorting.individualCount,bet_sorting.identificationQualifier,
+         bet_sorting.nativeStatusCode, bet_sorting.identifiedBy) %>%
+  mutate(year = substring(bet_sorting.setDate,1,nchar(bet_sorting.setDate) -1)) %>%
+  mutate(monthDay = substring(bet_sorting.setDate, 6))
+
+sort2018$monthDay <- as.Date(sort2018$monthDay, format = "%m-%d")
+## Factorize that data frame
+sortFactor <- as.data.frame(unclass(sort2018))
+## Sort data by idenified by to make the bar plot pretty
+sortFactor <- within(sortFactor, 
+                     bet_sorting.siteID <- factor(bet_sorting.siteID, 
+                                      levels=names(sort(table(bet_sorting.siteID), 
+                                                        decreasing=FALSE))))
+```
+
+```{r Plot CPER overtime, warning=FALSE, fig.width =15, fig.height = 9}
+CPER <- sortFactor %>%
+  filter(bet_sorting.siteID == "CPER")
+
+plot<- ggplot(CPER, aes(x= monthDay,fill = bet_sorting.scientificName))+
+  geom_density(alpha=0.5) +
+  labs(title = "Density Plot of Beetle Counts from the CPER",
+       x = "",
+       y = "") +
+  theme(axis.text.x = element_text(angle = 270)) +
+  facet_wrap(~year, ncol = 1)
+
+
+
+start <- Sys.time()
+ggplotly(plot)
+end <- Sys.time()
+end - start
+```
+
+```{r Plot STER overtime, warning=FALSE, fig.width =15, fig.height = 9}
+STER <- sortFactor %>%
+  filter(bet_sorting.siteID == "STER")
+
+plot<- ggplot(STER, aes(x= monthDay,fill = bet_sorting.scientificName))+
+  geom_density(alpha=0.5) +
+  labs(title = "Density Plot of Beetle Counts from the STER",
+       x = "",
+       y = "") +
+  theme(axis.text.x = element_text(angle = 270)) +
+  facet_wrap(~year, ncol = 1)
+
+
+
+start <- Sys.time()
+ggplotly(plot)
+end <- Sys.time()
+end - start
+```
+
+```{r Plot RMNP overtime,warning=FALSE, fig.width =15, fig.height = 9}
+RMNP <- sortFactor %>%
+  filter(bet_sorting.siteID == "RMNP")
+
+plot<- ggplot(CPER, aes(x= monthDay,fill = bet_sorting.scientificName))+
+  geom_density(alpha=0.5) +
+  labs(title = "Density Plot of Beetle Counts from the RMNP",
+       x = "",
+       y = "") +
+  theme(axis.text.x = element_text(angle = 270)) +
+  facet_wrap(~year, ncol = 1)
+
+
+
+start <- Sys.time()
+ggplotly(plot)
+end <- Sys.time()
+end - start
+```
+
+```{r Plot NIWO overtime, warning=FALSE, fig.width =15, fig.height = 9}
+NIWO <- sortFactor %>%
+  filter(bet_sorting.siteID == "NIWO")
+
+plot<- ggplot(CPER, aes(x= monthDay,fill = bet_sorting.scientificName))+
+  geom_density(alpha=0.5) +
+  labs(title = "Density Plot of Beetle Counts from the NIWO",
+       x = "",
+       y = "") +
+  theme(axis.text.x = element_text(angle = 270)) +
+  facet_wrap(~year, ncol = 1)
+
+
+
+start <- Sys.time()
+ggplotly(plot)
+end <- Sys.time()
+end - start
+```
