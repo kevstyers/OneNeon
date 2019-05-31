@@ -1,0 +1,140 @@
+---
+title: "Mos"
+author: "Kevin Styers"
+date: "5/31/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# load dependencies
+library(neonUtilities)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+```
+
+```{r grabData, include=FALSE}
+#mosPath <- loadByProduct("DP1.10041.001", check.size = FALSE)
+#mosPathResults <- mosPath$mos_pathogenresults
+# mosCounts <- loadByProduct("DP1.10043.001", check.size = FALSE)
+# mosCountsTaxa <- mosCounts$mos_expertTaxonomistIDProcessed
+# write.csv(mosCountsTaxa, "mosCountsTaxa.csv")
+
+#write.csv(mosPathResults, "mosPathResults.csv")
+mosPathResults <- fread("mosPathResults.csv")
+mosCountResults <- fread("mosCountsTaxa.csv")
+#remove extraneous variables
+
+
+
+mosFinal <- mosPathResults 
+#%>% select(siteID, domainID, decimalLatitude,decimalLongitude, elevation, endCollectDate, testedDate, sampleCondition, testMethod, testResult,testPathogenName,finalResult,remarks, laboratoryName)
+
+mosFinal <- mosFinal %>%
+  mutate(year = substring(endCollectDate,1,nchar(endCollectDate) -13))
+
+mosFinal$siteID <- as.factor(mosFinal$siteID )
+mosFinal$testPathogenName <- as.factor(mosFinal$testPathogenName)
+mosFinal$testResult <- as.factor(mosFinal$testResult)
+library(plyr)
+unique(mosFinal$laboratoryName)
+mosFinal$laboratoryName <- revalue(mosFinal$laboratoryName, c("University of Massachusetts Laboratory of Medical Zoology"="UMassLab", "Connecticut Agricultural Experiment Station"="ConnAES", "University of Illinois"="UofIllinois"))
+
+
+mosCountResults <- mosCountResults %>%
+  mutate(year = substring(collectDate,1,nchar(collectDate) -13))
+
+mosCountsSel <- mosCountResults %>%
+  select(year,domainID,siteID,plotID,collectDate,identifiedDate,individualCount, scientificName,taxonRank,nativeStatusCode, sex,sampleCondition,laboratoryName)
+
+mosCountsSel$siteID <- as.factor(mosCountsSel$siteID)
+mosCountsSel$domainID <- as.factor(mosCountsSel$domainID)
+mosCountsSel$nativeStatusCode <- as.factor(mosCountsSel$siteID)
+mosCountsSel$testPathogenName <- as.factor(mosCountsSel$sex)
+mosCountsSel$testResult <- as.factor(mosCountsSel$sampleCondition)
+library(plyr)
+unique(mosCountsSel$laboratoryName)
+mosCountsSel$laboratoryName <- revalue(mosCountsSel$laboratoryName, c("University of Massachusetts Laboratory of Medical Zoology"="UMassLab", "Connecticut Agricultural Experiment Station"="ConnAES", "University of Illinois"="UofIllinois", "Kansas Biological Survey" = "KanBioSurvey","Colorado Mosquito Control" = "CO Mos Control", "Vector Disease Control International" = "VecDiseaseConINTL"))
+
+ 
+
+
+dataPos <- mosFinal %>%
+  filter(testResult == "Positive") %>%
+  filter(finalResult == "Y")
+
+dataNeg <- mosFinal %>%
+  filter(testResult == "Negative")%>%
+  filter(finalResult == "Y")
+```
+
+# Pathogen Counts  
+## ..by siteID and PathogenID
+This data shows the pathogen counts from the NEON data portal. Out of some 31,000 mosquiotes sampled, only 95 were positive for a tested pathogen, or 0.3%.  
+```{r ploting, echo=FALSE, fig.width=9, fig.height=6}
+bp<- ggplot(dataPos, aes(x=siteID, fill=testPathogenName))+
+geom_bar(width = 1, stat = "count") +
+  facet_wrap(~year)+ 
+  theme_light() +
+  labs(title = "Total Pathogen Counts for the NEON Project",
+       x = "",
+       y = "") +
+  theme(axis.text.x = element_text(angle = 270))
+ggplotly(bp)
+```
+
+## ..by lab and PathogenID
+
+NEON has used a few labs for it's mosquito pathogen testing since its initial construction phase. Currently, it appears that UMass will be conducting the pathogen testing for the coming years. We can see that University of Illinois detected a lot of West Nile Virus in 2014 at in Sterling, Colorado. It appears that the lab contract fell though and since then, West Niles has not been reported in such large counts.  
+
+```{r ploting1, echo=FALSE,fig.width=9, fig.height=6}
+bp<- ggplot(dataPos, aes(x=laboratoryName, fill=testPathogenName))+
+geom_bar(width = 1, stat = "count") +
+  facet_wrap(~year)+ 
+  theme_light() +
+  labs(title = "Pathogen Counts by Laboratory for the NEON Project",
+       x = "",
+       y = "") +
+  theme(axis.text.x = element_text(angle = 270))
+ggplotly(bp)
+```
+  
+# Mosquito Counts  
+  
+## ..by Laboratory
+```{r SampleCondition, echo=FALSE,fig.width=9, fig.height=15}
+#mosCountsSel
+
+plot <- ggplot(mosCountsSel, aes(x=laboratoryName, fill = sampleCondition))+
+  geom_bar(stat = "count") +
+  theme_light() +
+  facet_wrap(~year, ncol =1) +
+  labs(title = "Mosquito Counts by Laboratory for the NEON Project",
+       y = "",
+       x = "") +
+  theme(axis.text.x = element_text(angle = 270))
+ggplotly(plot)
+```
+
+## ..by DomainID and Genus
+  
+```{r TotalCounts, echo=FALSE,fig.width=9, fig.height=15}
+plot <- ggplot(mosCountResults, aes(x=domainID, fill = genus))+
+  geom_bar(stat = "count") +
+  theme_light() +
+  facet_wrap(~year, ncol=1) +
+  labs(title = "Mosquito Counts by Domain for the NEON Project",
+       y = "",
+       x = "") +
+  theme(axis.text.x = element_text(angle = 270))
+ggplotly(plot)
+
+```
+  
+  
+  
+  
+Test
