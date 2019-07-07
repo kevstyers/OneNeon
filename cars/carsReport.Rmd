@@ -1,0 +1,81 @@
+---
+title: "kaggle Craigslist Cars"
+author: "kstyers"
+date: "July 7, 2019"
+output:
+  prettydoc::html_pretty:
+    toc: true
+    theme: architect
+    highlight: github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A quick look examining the Kaggle Craigslist Car dataset
+
+```{r load,include=F}
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+cCars<-data.table::fread("X:/1_Databases/craigslistVehicles.csv",na.strings=c("", "NA"))
+cCars$price<-as.numeric(as.character(cCars$price))
+cCars$odometer<-as.numeric(as.character(cCars$odometer))
+```
+
+```{r filterTesla,echo=F,warning=FALSE,message=FALSE}
+library(scales)
+cCars <- na.omit(cCars)
+cCars <- cCars %>%
+  filter(odometer > 100)
+cCars$year <- as.integer(cCars$year)
+
+hondaOdd <- cCars %>%
+  filter(manufacturer %in% c("honda","toyota","ford","chevrolet","gmc","volkswagen","bmw","mercedes-benz","kia","nissan","chrysler","jaguar")) %>%
+  filter(odometer > 100 & odometer < 500000) %>%
+  filter(title_status == "clean") %>%
+  filter(year < "2019") %>%
+  filter(transmission == "automatic") %>%
+  filter(price > 100 & price < 75000) %>%
+  filter(year > 2003) 
+
+
+plot <- ggplot(hondaOdd)+
+  # geom_point(size=1,aes(x=year, y=price,color = make)) +
+  geom_smooth(method = 'auto',se=F,aes(x=year, y=price, color = manufacturer))+
+  labs(title = "Value of Brand Overtime",x="Year of Car", y = "Price($)", color = "Manufacturer")+
+  scale_x_reverse()+
+  theme_light()+ scale_y_continuous(labels = dollar)
+
+ggplotly(plot)
+
+cylinderData <- hondaOdd %>%
+  filter(cylinders %in% c("8 cylinders","6 cylinders","4 cylinders","3 cylinders")
+        & odometer > 20000)
+test<- hondaOdd %>%
+  filter(manufacturer == "mazda")
+cylinderData$cylinders<- factor(cylinderData$cylinders, levels = c("8 cylinders","6 cylinders","4 cylinders","3 cylinders"))
+plot <- ggplot(cylinderData)+
+  geom_point(size=1,aes(x=odometer, y=price,color = cylinders)) +
+  labs(title = "Price vs Odometer by # of Cylinders in Engine",x="Odometer", y = "Price($)", color = "Cylinder")+
+  scale_x_log10()+
+  theme_light()+ scale_y_continuous(labels = dollar)
+
+ggplotly(plot)
+
+# Summary of City Car Sales value
+totalCounts <- hondaOdd %>%
+  group_by(city) %>%
+  summarize(total = sum(price))
+
+plot <- ggplot(totalCounts, aes(x=city, y=total, fill = city))+
+  geom_col()+
+  theme_light()+
+  theme(axis.text.x = element_text(angle = 270)) +
+  scale_x_discrete(name ="City", 
+                    limits=c("western slope","chattanooga, TN","jacksonville, FL","huntsville / decatur","anchorage / mat-su","vermont","green bay, WI","appleton-oshkosh-FDL")) +
+  labs(title= "Total Value of Cars List in the Top 8 Markets",y="Total on the Market Value", fill = "Craigslist Market")+ scale_y_continuous(labels = dollar)
+ggplotly(plot)
+```
