@@ -6,7 +6,7 @@ To produce easy to use applications that show the utility of NEON data. I feel i
 
 ## VST App
 
-![Image description](https://live.staticflickr.com/65535/40802667543_73f26554a5_b.jpg)
+![Image description](https://github.com/kevstyers/kevstyers.github.io/blob/master/images/vstGRSM.PNG?raw=true)
 
 Kevin Styers  
 5/3/2019
