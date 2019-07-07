@@ -195,4 +195,5 @@ plot <- ggplot(tftsHead, aes(x=measuredBy, y=totalMass, fill=measuredBy))+
           axis.title.y = element_text(angle = 0))
 
 ggplotly(plot)
+
 ```
