@@ -1,0 +1,198 @@
+---
+title: "Litter Fall Analysis"
+author: "Kevin Styers"
+date: "July 6, 2019"
+output:
+  prettydoc::html_pretty:
+    toc: true
+    theme: architect
+    highlight: github
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE,error = TRUE)
+library(ggplot2)
+theme_set(theme_light())
+```
+
+```{r initial clean, include=FALSE, echo=FALSE}
+# setwd("X:/1_Databases")
+
+library(plotly)
+
+# Stack Data
+#library(neonUtilities)
+#neonUtilities::stackByTable("NEON_litterfall.zip")
+
+# Grab Data
+library(data.table)
+litter <- data.table::fread("X:/1_Databases/NEON_litterfall/stackedFiles/ltr_massdata.csv")
+litter <- litter %>% mutate(year = substring(weighDate,1,nchar(weighDate) -6))
+litter1 <- litter
+# Select Data
+litter <- litter %>%
+    select(-remarks) %>%
+    na.omit()
+
+
+# Convert columns into usable data types
+library(tidyverse)
+library(magrittr)
+cols <- c("domainID", "siteID", "plotID", "trapID","functionalGroup","dryMass","qaDryMass","measuredBy")
+litter <- litter %>% mutate_at(cols, funs(factor(.)))
+litter$weighDate <- as.Date(litter$weighDate)
+litter$setDate <- as.Date(litter$setDate)
+litter$collectDate <- as.Date(litter$collectDate)
+litter$ovenStartDate <- as.Date(litter$ovenStartDate)
+litter$ovenEndDate <- as.Date(litter$ovenEndDate)
+litter$dryMass <- as.numeric(as.character(litter$dryMass, na.rm = TRUE))
+litter<- litter %>% mutate(dayOfYear = yday(weighDate))
+litter <- litter %>%
+    mutate(totalSampleTime = collectDate - setDate)
+
+# Mutate data
+
+# # Total Sample Time
+litter <- litter %>%
+    mutate(totalSampleTime = collectDate - setDate)
+# # Sum of dryWeight for each functional Group
+litter <- select(litter, domainID, siteID, plotID, trapID,year,dayOfYear, weighDate, setDate, collectDate, ovenStartDate, ovenEndDate, fieldSampleID, massSampleID, functionalGroup, dryMass, qaDryMass, measuredBy,totalSampleTime,measuredBy)
+
+groups <- c("Leaves", "Twigs/branches","Other", "Woody material","Seeds","Needles","Mixed","Flowers")
+```
+
+# Introduction  
+
+The NEON Project collects leaf litter in 1m x 1m 'litter traps,' spread across a site's forested plots. Technicians periodically collect, sort, dry, and weigh the litter trap's contents by functional group. I've done some exploratory analysis to look at some macro patterns without a specific goal. I use tidy techniques and `ggplot2` with `plotly` to transform and visualize the NEON Data.
+
+
+# NEON's Total Litter Weights 
+
+## by Functional Group  
+
+This first plot shows the NEON Project's total litter collection weights by functional group and Domain ID. The Y-Axis shows the total weigh in grams, the X-Axis filters the data by fuctional group. if you hover your cursor you can see precise weights for functional groups with that Domain.
+
+```{r plot1, echo=FALSE, fig.width= 8}
+selectionVariable <- litter %>%
+    select(year,domainID,functionalGroup,dryMass) %>%
+    filter(year > "2015") %>%
+    group_by(domainID,functionalGroup) %>%
+    summarize(siteFuncWeight = sum(dryMass))
+
+# Test a plot 
+plot <- ggplot(selectionVariable, aes(x=functionalGroup, y=siteFuncWeight, fill = domainID)) +
+    geom_col() +
+    labs(title = "",
+         subtitle = "",
+         fill='DomainID:',
+         y = "Mass (g)",
+         x = "Functional Group") +
+    theme(axis.text.x = element_text(angle = 270)) +
+    scale_x_discrete(name ="Functional Group", 
+                    limits=c("Flowers","Other","Woody material","Seeds","Needles","Mixed","Twigs/branches","Leaves"))
+
+ggplotly(plot)   
+```
+
+## by DomainID  
+
+Now, I've switched the x-axis and color variables to show the total of weight each functional group by Domain
+
+```{r plot2, echo=FALSE, fig.width= 8}
+d5 <- litter %>%
+    filter(domainID == "D05") 
+
+selectionVariable <- litter %>%
+    filter(year > "2015" & year < "2019") %>%
+    select(domainID,functionalGroup,dryMass) %>%
+    group_by(domainID,functionalGroup) %>%
+    summarize(siteFuncWeight = sum(dryMass))
+# groups <- c("Leaves", "Twigs/branches","Other", "Woody material","Seeds","Needles","Mixed","Flowers")
+
+plot <- ggplot(selectionVariable, aes(x=domainID, y=siteFuncWeight, fill = functionalGroup)) +
+    geom_col() +    
+    labs(title = "",
+         fill='DomainID:',
+         y = "Mass (g)",
+         x = "") +
+    theme(axis.text.x = element_text(angle = 270),
+          axis.title.y = element_text(angle = 0))
+
+ggplotly(plot) 
+```
+
+## by Total Sample Time in Days  
+
+```{r plot4, echo=F,fig.width= 8}
+litter1 <- litter %>%
+    select(domainID,trapID,setDate,collectDate,totalSampleTime) %>%
+    distinct() %>% 
+    group_by(domainID,trapID,setDate) %>%
+    summarize(TOTALset = sum(totalSampleTime))%>%
+    group_by(domainID)%>%
+    summarize(totalSet = sum(TOTALset))
+litter1$totalSet <- as.integer(as.character(litter1$totalSet))
+plot <- ggplot(litter1, aes(x=domainID, y=totalSet, fill=domainID))+
+        geom_col() +    
+    labs(title = "",
+         fill='DomainID:',
+         y = "Total Sample Days",
+         x = "") +
+    theme(axis.text.x = element_text(angle = 270),
+          axis.title.y = element_text(angle = 0))
+ggplotly(plot)
+```
+
+
+## by Date
+
+The X-Axis is now the Day of Year. The Y-Axis is the total weight (grams) for that Day of Year.  
+```{r plot3, echo=F, fig.width= 8,warning=FALSE}
+# group Weight and Date
+weighDay <- litter %>%
+    filter(year > "2015" & year < "2019") %>%
+    select(year,dayOfYear,functionalGroup,dryMass)%>%
+    group_by(year, dayOfYear,functionalGroup) %>%
+    summarize(dayMass = sum(dryMass))
+# weighDay$weighDate <- as.Date(weighDay$weighDate)
+
+weighDay$dayOfYear <- as.numeric(as.character(weighDay$dayOfYear))
+
+plot <- ggplot(weighDay,aes(x=dayOfYear,y=dayMass,color=functionalGroup))+
+    geom_line() +
+    labs(title = "NEON's Total Litter Weights by Functional Group",
+       fill='DomainID:',
+       y = "",
+       x = "Day of Year",
+       color = "Functional Group") +
+    facet_wrap(~year,ncol=1)
+ggplotly(plot)
+```
+
+
+## by Technician
+
+This plot shows technicians with highest sampled litter weight in grams.   
+
+```{r plot5, echo=F, fig.width= 8,warning=FALSE}
+tfts <- litter %>%
+  filter(year > "2015" & year <"2019")%>%
+  select(dryMass, measuredBy) %>%
+  group_by(measuredBy)%>%
+  summarize(totalMass = sum(dryMass))
+
+df <-tfts[order(-tfts$totalMass),]
+tftsHead <- head(df, n=10)
+
+plot <- ggplot(tftsHead, aes(x=measuredBy, y=totalMass, fill=measuredBy))+
+        geom_col() +    
+    labs(title = "",
+         fill='Measured By:',
+         y = "Total Mass Sampled(g)",
+         x = "") +
+    theme(axis.text.x = element_text(angle = 270),
+          axis.title.y = element_text(angle = 0))
+
+ggplotly(plot)
+```
