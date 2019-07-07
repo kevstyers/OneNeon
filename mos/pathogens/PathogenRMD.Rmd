@@ -1,8 +1,13 @@
 ---
-title: "Mos"
+title: "Mosquito Pathogen Report"
 author: "Kevin Styers"
 date: "5/31/2019"
-output: html_document
+output:
+  prettydoc::html_pretty:
+    toc: true
+    theme: cayman
+    highlight: github
+    
 ---
 
 ```{r setup, include=FALSE}
@@ -17,15 +22,15 @@ library(plotly)
 ```
 
 ```{r grabData, include=FALSE}
-#mosPath <- loadByProduct("DP1.10041.001", check.size = FALSE)
-#mosPathResults <- mosPath$mos_pathogenresults
+# mosPath <- loadByProduct("DP1.10041.001", check.size = FALSE)
+# mosPathResults <- mosPath$mos_pathogenresults
 # mosCounts <- loadByProduct("DP1.10043.001", check.size = FALSE)
 # mosCountsTaxa <- mosCounts$mos_expertTaxonomistIDProcessed
 # write.csv(mosCountsTaxa, "mosCountsTaxa.csv")
-
-#write.csv(mosPathResults, "mosPathResults.csv")
+# 
+# write.csv(mosPathResults, "mosPathResults.csv")
 mosPathResults <- fread("mosPathResults.csv")
-mosCountResults <- fread("mosCountsTaxa.csv")
+ mosCountResults <- fread("mosCountsTaxa.csv")
 #remove extraneous variables
 
 
@@ -105,13 +110,14 @@ ggplotly(bp)
 # Mosquito Counts  
   
 ## ..by Laboratory
-```{r SampleCondition, echo=FALSE,fig.width=9, fig.height=15}
+```{r SampleCondition, echo=FALSE,fig.width=9, fig.height=7}
 #mosCountsSel
-
+mosCountsSel <- mosCountsSel %>%
+  filter(year %in% c("2014","2016","2017","2018"))
 plot <- ggplot(mosCountsSel, aes(x=laboratoryName, fill = sampleCondition))+
   geom_bar(stat = "count") +
   theme_light() +
-  facet_wrap(~year, ncol =1) +
+  facet_wrap(~year, ncol =2) +
   labs(title = "Mosquito Counts by Laboratory for the NEON Project",
        y = "",
        x = "") +
@@ -121,7 +127,10 @@ ggplotly(plot)
 
 ## ..by DomainID and Genus
   
-```{r TotalCounts, echo=FALSE,fig.width=9, fig.height=15}
+```{r TotalCounts, echo=FALSE,fig.width=9, fig.height=8}
+mosCountResults <- mosCountResults %>%
+  filter(year %in% c("2014","2016","2017","2018"))
+
 plot <- ggplot(mosCountResults, aes(x=domainID, fill = genus))+
   geom_bar(stat = "count") +
   theme_light() +
@@ -134,7 +143,3 @@ ggplotly(plot)
 
 ```
   
-  
-  
-  
-Test
