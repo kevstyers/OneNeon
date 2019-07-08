@@ -52,17 +52,14 @@ plot <- ggplot(hondaOdd)+
 ggplotly(plot)
 
 cylinderData <- hondaOdd %>%
-  filter(cylinders %in% c("8 cylinders","6 cylinders","4 cylinders","3 cylinders")
+  filter(manufacturer %in% c("honda","toyota","ford","chevrolet","gmc","volkswagen","bmw","mercedes-benz","kia","nissan","chrysler","jaguar")
         & odometer > 20000)
-test<- hondaOdd %>%
-  filter(manufacturer == "mazda")
-cylinderData$cylinders<- factor(cylinderData$cylinders, levels = c("8 cylinders","6 cylinders","4 cylinders","3 cylinders"))
-plot <- ggplot(cylinderData)+
-  geom_point(size=1,aes(x=odometer, y=price,color = cylinders)) +
-  labs(title = "Price vs Odometer by # of Cylinders in Engine",x="Odometer", y = "Price($)", color = "Cylinder")+
-  scale_x_log10()+
-  theme_light()+ scale_y_continuous(labels = dollar)
 
+plot <- ggplot(cylinderData)+
+  geom_point(size=1,aes(x=odometer, y=price,color = manufacturer, label = make, label2 =year, label3=city)) +
+  labs(title = "Price vs Odometer by Brand",x="Odometer (miles)", y = "Price($)", color = "Brand")+
+  scale_x_log10()+
+  theme_light()+ scale_y_continuous(labels = dollar) +scale_x_continuous(labels = comma)
 ggplotly(plot)
 
 # Summary of City Car Sales value
