@@ -87,23 +87,23 @@ db <- data.table::fread("vstDataBase.csv", stringsAsFactors = FALSE)
 # db<-db[!duplicated(db$uid), ]
 # db <- db %>%
 #   select(-V1)
+db<- db %>% select(domainID.x, siteID.x, plotID, individualID, scientificNameMapNTag, date, year, height, stemDiameter, baseCrownHeight, plantStatus, growthForm, taxonRankMapNTag)
+names(db) <-c("Domain","Site","Plot","IndividualID","ScientificName","Date","Year","Height","StemDiameter","BaseCrownHeight","PlantStatus","GrowthForm","TaxonRank")
 
-
-db$individualID <- substring(db$individualID, 14)
-db$individualID <- as.factor(db$individualID)
-db$year <- as.factor(db$year)
-db$plotID <- as.factor(db$plotID)
-db$domainID.x <- as.factor(db$domainID.x)
-db$siteID.x <- as.factor(db$siteID.x)
-db$individualID <- as.factor(db$individualID)
-db$growthForm <- as.factor(db$growthForm)
-db$scientificNameMapNTag <- as.factor(db$scientificNameMapNTag)
-db$taxonIDMapNTag <- as.factor(db$taxonIDMapNTag)
+db$IndividualID <- substring(db$IndividualID, 14)
+db$IndividualID <- as.factor(db$IndividualID)
+db$Year <- as.factor(db$Year)
+db$Plot <- as.factor(db$Plot)
+db$Domain <- as.factor(db$Domain)
+db$Site <- as.factor(db$Site)
+db$GrowthForm <- as.factor(db$GrowthForm)
+db$ScientificName <- as.factor(db$ScientificName)
+db$TaxonRank <- as.factor(db$TaxonRank)
 
 # remove NA
-sum(is.na(db$stemDiameter))
+sum(is.na(db$StemDiameter))
 names(db)
-db<-db[!(db$stemDiameter=="NA" | db$stemDiameter=="")]
+db<-db[!(db$StemDiameter=="NA" | db$StemDiameter=="")]
 
 # testing out name variables, forget why this worked
 
@@ -114,7 +114,7 @@ year4 <- "2017"
 year5 <- "2018"
 
 # Create list of 50 unique species ID with highest counts 
-oneOff <-  select(db, scientificNameMapNTag)
+oneOff <-  select(db, ScientificName)
 speciesList <-  as.data.frame(summary(oneOff, maxsum = 50))
 
 speciesList <- gsub('[[:digit:]]+', '', speciesList$Freq)
@@ -131,7 +131,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                              tabPanel("Height vs DBH", fluid = TRUE,
                                       sidebarLayout(
                                         sidebarPanel(
-                                          pickerInput("siteID_1","Site Select", c("BART" = BART,"HARV" = HARV,"SCBI" = SCBI,"SERC"	= SERC,"BLAN"=BLAN,"OSBS"=OSBS,"DSNY"=DSNY,"JERC"=JERC,"GUAN"=GUAN,
+                                          pickerInput("siteID_1","Select Site", c("BART" = BART,"HARV" = HARV,"SCBI" = SCBI,"SERC"	= SERC,"BLAN"=BLAN,"OSBS"=OSBS,"DSNY"=DSNY,"JERC"=JERC,"GUAN"=GUAN,
                                                                                   "LAJA"=LAJA,"UNDE"=UNDE,"STEI"=STEI,"TREE"=TREE,"KONZ"=KONZ,"UKFS"=UKFS,"KONA"=KONA,"ORNL"=ORNL,
                                                                                   "MLBS"=MLBS,"GRSM"=GRSM,"TALL"=TALL,"LENO"=LENO,"DELA"=DELA,"WOOD"=WOOD,"DCFS"=DCFS,"NOGP"=NOGP,
                                                                                   "ARIK"=ARIK,"STER"=STER,"CPER"=CPER,"RMNP"=RMNP,"BLUE"=BLUE,"PRIN"=PRIN,"CLBJ"=CLBJ,"CLBJ_2"=CLBJ_2,
@@ -215,38 +215,38 @@ server <- function(input, output) {
   # Tab 1
 output$columns = renderUI({
     mydata <- db %>%
-      filter(siteID.x == input$siteID_1 
-             & growthForm == "single bole tree" 
-             & taxonRankMapNTag == "species" 
-             & year %in% input$yearCat
-             & plantStatus %in% input$treeStatus)
-    mydata <- mydata[!duplicated(mydata$individualID),]%>%
-      select(individualID) 
+      filter(Site == input$siteID_1 
+             & GrowthForm == "single bole tree" 
+             & TaxonRank == "species" 
+             & Year %in% input$yearCat
+             & PlantStatus %in% input$treeStatus)
+    mydata <- mydata[!duplicated(mydata$IndividualID),]%>%
+      select(IndividualID) 
     mydata <- as.list(mydata)
     selectInput('selectID', 'Select Individual IDs to plot', multiple = TRUE, selectize = TRUE, choices = mydata, selected = NULL)
   })
 db_f <- reactive({
     if(length(input$selectID) == 0){
-      filter(db, siteID.x == input$siteID_1 
-             & growthForm == "single bole tree" 
-             & taxonRankMapNTag == "species" 
-             & year %in% input$yearCat
-             & plantStatus %in% input$treeStatus)
+      filter(db, Site == input$siteID_1 
+             & GrowthForm == "single bole tree" 
+             & TaxonRank == "species" 
+             & Year %in% input$yearCat
+             & PlantStatus %in% input$treeStatus)
 
     } else {
       filter(db, siteID.x == input$siteID_1 
-             & growthForm == "single bole tree" 
-             & taxonRankMapNTag == "species" 
-             & year %in% input$yearCat
-             & individualID %in% input$selectID
-             & plantStatus %in% input$treeStatus)
+             & GrowthForm == "single bole tree" 
+             & TaxonRank == "species" 
+             & Year %in% input$yearCat
+             & IndividualID %in% input$selectID
+             & PlantStatus %in% input$treeStatus)
         
     }
     })
   pp <- eventReactive((input$refreshPlot_1),{
-    ggplot(db_f(), aes(x=stemDiameter, y=height, color = year, group=individualID)) +
+    ggplot(db_f(), aes(x=StemDiameter, y=Height, color = Year, group=IndividualID, label = ScientificName, label2 = Plot)) +
       geom_point(size=1.4, alpha =.7) + 
-      stat_summary(aes(group=individualID), fun.y=mean, geom="line", colour="green", alpha = .35, width = .5) +
+      stat_summary(aes(group=IndividualID), fun.y=mean, geom="line", colour="green", alpha = .35, width = .5) +
       xlab("Stem Diameter At DBH(130cm)") +
       ylab("Tree Height (m)") +
       #geom_vline(xintercept =10,color="red") +
@@ -255,8 +255,8 @@ db_f <- reactive({
       theme_light()+
       labs(title = "NEON's Single Bole Trees",
            subtitle = "Each point represents an IndividualID. A green line is drawn from each individualID for each year it was sampled.",
-           color='Legend:')  +
-      facet_wrap(~siteID.x)
+           color='Year:')  +
+      facet_wrap(~Site)
     
     })
   
@@ -265,7 +265,7 @@ db_f <- reactive({
   })
   tableData <- reactive({
     db_f() %>%
-    select(domainID.x, siteID.x, plotID, individualID, scientificNameMapNTag, date, year, height, stemDiameter, baseCrownHeight, plantStatus, growthForm, taxonRankMapNTag)
+    select(Domain, Site, Plot, IndividualID, ScientificName, Date, Year, Height, StemDiameter, BaseCrownHeight, PlantStatus, GrowthForm, TaxonRank)
   })
   output$table_1 <- renderDataTable(tableData(),
                                     options = list(
@@ -275,35 +275,41 @@ db_f <- reactive({
 # End Tab 1
 # Start Tab 2
 db_f2 <- reactive({
-        filter(db, scientificNameMapNTag == input$species
-               & growthForm == "single bole tree" 
-               & taxonRankMapNTag == "species" 
-               & year %in% input$yearCat2
-               & plantStatus %in% input$treeStatus2)
-
+        filter(db, ScientificName == input$species
+               & GrowthForm == "single bole tree" 
+               & TaxonRank == "species" 
+               & Year %in% input$yearCat2
+               & PlantStatus %in% input$treeStatus2)
+        
 })
+
 qq <- eventReactive((input$refreshPlot_2),{
-    ggplot(db_f2(), aes(x=stemDiameter, y=height, color = year,group=individualID)) +
+    ggplot(db_f2(), aes(x=StemDiameter, y=Height, color = Year,group=IndividualID, label = ScientificName)) +
         geom_point(alpha =.7) + 
-        stat_summary(aes(group=individualID), fun.y=mean, geom="line", colour="green", alpha = .35, width = .5) +
+        stat_summary(aes(group=IndividualID), fun.y=mean, geom="line", colour="green", alpha = .35, width = .5) +
         xlab("Stem Diameter At DBH(130cm)") +
         ylab("Tree Height (m)") +
         #geom_vline(xintercept =10,color="red") +
         theme_light()+
         labs(title = "NEON's Single Bole Trees",
              subtitle = "Each point represents an IndividualID. A green line is drawn from each individualID for each year it was sampled.",
-             color='Legend:')  +
-        facet_wrap(~siteID.x)
+             color='Year:')  +
+        facet_wrap(~Site)
     
 })
 
 output$plot_2 <- renderPlotly({
     qq()
 })
+
+
 tableData2 <- reactive({
     db_f2() %>%
-        select(domainID.x, siteID.x, plotID, individualID, scientificNameMapNTag, date, year, height, stemDiameter, baseCrownHeight, plantStatus, growthForm, taxonRankMapNTag)
-})
+        select(Domain, Site, Plot, IndividualID, ScientificName, Date, Year, Height, StemDiameter, BaseCrownHeight, PlantStatus, GrowthForm, TaxonRank)
+  
+  })
+
+
 output$table_2 <- renderDataTable(tableData2(),
                                   options = list(
                                       pageLength = 25
